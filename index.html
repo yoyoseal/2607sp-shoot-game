@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>祭典射擊攤位</title>
+
+  <style>
+    :root {
+      --background: #000000;
+      --red: #ff1010;
+      --white: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--background);
+      font-family:
+        "Noto Sans TC",
+        "Microsoft JhengHei",
+        sans-serif;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button,
+    img {
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    /* =========================
+       遊戲外框
+    ========================= */
+
+    .game-shell {
+      position: relative;
+      width: 586px;
+      height: 474px;
+      padding: 18px 18px 16px;
+      overflow: hidden;
+      color: var(--red);
+      background: var(--background);
+      border: 1px solid var(--red);
+    }
+
+    /* =========================
+       三個目標
+    ========================= */
+
+    .stage-grid {
+      display: grid;
+      grid-template-columns: 72px repeat(3, 120px);
+      grid-template-rows: 120px 84px;
+      justify-content: space-between;
+      align-items: start;
+      row-gap: 12px;
+      width: 100%;
+    }
+
+    .grid-spacer {
+      width: 72px;
+      height: 120px;
+    }
+
+    .target-frame {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      overflow: hidden;
+      background: #000000;
+      border: 1px solid var(--red);
+    }
+
+    .target-frame img {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      display: none;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .target-frame.has-image img {
+      display: block;
+    }
+
+    .target-fallback {
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--red);
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+
+    .target-frame.has-image .target-fallback {
+      display: none;
+    }
+
+    .target-frame.current-target {
+      box-shadow:
+        0 0 8px rgba(255, 16, 16, 0.95),
+        inset 0 0 6px rgba(255, 16, 16, 0.55);
+    }
+
+    /* =========================
+       挑戰難度
+    ========================= */
+
+    .difficulty-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px;
+      height: 54px;
+      margin-top: 2px;
+      color: var(--red);
+      font-size: 15px;
+      font-weight: bold;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    .difficulty-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 120px;
+      min-height: 84px;
+    }
+
+    .difficulty-image-box {
+      position: relative;
+      width: 53px;
+      height: 54px;
+      overflow: hidden;
+      background: #000000;
+      border: 1px solid var(--red);
+    }
+
+    .difficulty-image-box img {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      display: none;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .difficulty-image-box.has-image img {
+      display: block;
+    }
+
+    .difficulty-fallback {
+      position: absolute;
+      z-index: 1;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--red);
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .difficulty-image-box.has-image .difficulty-fallback {
+      display: none;
+    }
+
+    .stage-status {
+      min-height: 22px;
+      margin-top: 5px;
+      color: var(--red);
+      font-size: 14px;
+      font-weight: bold;
+      line-height: 1.2;
+      text-align: center;
+    }
+
+    /* =========================
+       進度與射擊按鈕
+    ========================= */
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 178px 102px 26px 54px;
+      align-items: center;
+      justify-content: center;
+      column-gap: 8px;
+      width: 100%;
+      margin-top: 17px;
+    }
+
+    .progress-text {
+      color: var(--red);
+      font-size: 15px;
+      font-weight: bold;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .shoot-button {
+      width: 102px;
+      height: 44px;
+      padding: 0;
+      color: var(--red);
+      background: #000000;
+      border: 1px solid var(--red);
+      border-radius: 0;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .shoot-button:hover:not(:disabled) {
+      color: var(--white);
+      border-color: var(--white);
+    }
+
+    .shoot-button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .shoot-button:disabled {
+      cursor: default;
+      opacity: 0.55;
+    }
+
+    .arrow {
+      color: var(--red);
+      font-size: 22px;
+      text-align: center;
+    }
+
+    /* =========================
+       1D20 骰子
+    ========================= */
+
+    .dice-box {
+      position: relative;
+      width: 53px;
+      height: 54px;
+      overflow: hidden;
+      background: #000000;
+      border: 1px solid var(--red);
+    }
+
+    .dice-box img {
+      position: absolute;
+      z-index: 2;
+      inset: 0;
+      display: none;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .dice-box.has-image img {
+      display: block;
+    }
+
+    .dice-result {
+      position: absolute;
+      z-index: 3;
+      left: 50%;
+      top: 50%;
+      min-width: 30px;
+      padding: 1px 2px;
+      color: var(--red);
+      background: rgba(0, 0, 0, 0.8);
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1;
+      text-align: center;
+      transform: translate(-50%, -50%);
+    }
+
+    /*
+      骰子圖片正常顯示時，
+      預設不另外顯示數字。
+    */
+
+    .dice-box.has-image .dice-result {
+      display: none;
+    }
+
+    /*
+      將 JavaScript 裡的 showDiceNumberOverlay
+      改成 true 後，數字會疊在骰子圖片上。
+    */
+
+    .dice-box.has-image.show-number .dice-result {
+      display: block;
+    }
+
+    .dice-box.rolling {
+      animation: dice-shake 0.09s linear infinite;
+    }
+
+    @keyframes dice-shake {
+      0% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+
+      25% {
+        transform: translate(-1px, 1px) rotate(-2deg);
+      }
+
+      50% {
+        transform: translate(1px, 0) rotate(2deg);
+      }
+
+      75% {
+        transform: translate(0, -1px) rotate(-1deg);
+      }
+
+      100% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+    }
+
+    /* =========================
+       角色台詞
+    ========================= */
+
+    .dialogue-box {
+      position: absolute;
+      left: 64px;
+      right: 22px;
+      bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 64px;
+      padding: 6px 14px;
+      overflow: hidden;
+      color: var(--white);
+      background: #000000;
+      border: 1px solid var(--red);
+    }
+
+    .dialogue-text {
+      width: 100%;
+      margin: 0;
+      color: var(--white);
+      font-size: 14px;
+      font-weight: bold;
+      line-height: 1.45;
+      text-align: center;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="game-shell">
+
+    <section class="stage-grid">
+
+      <div class="grid-spacer"></div>
+
+      <div class="target-frame" id="targetFrame0">
+        <span class="target-fallback">目標 1</span>
+        <img id="targetImage0" alt="第一關目標" />
+      </div>
+
+      <div class="target-frame" id="targetFrame1">
+        <span class="target-fallback">目標 2</span>
+        <img id="targetImage1" alt="第二關目標" />
+      </div>
+
+      <div class="target-frame" id="targetFrame2">
+        <span class="target-fallback">目標 3</span>
+        <img id="targetImage2" alt="第三關目標" />
+      </div>
+
+      <div class="difficulty-title">
+        挑戰<br />
+        難度
+      </div>
+
+      <div class="difficulty-cell">
+        <div class="difficulty-image-box" id="difficultyBox0">
+          <span
+            class="difficulty-fallback"
+            id="difficultyFallback0"
+          >
+            3
+          </span>
+
+          <img
+            id="difficultyImage0"
+            alt="第一關難度"
+          />
+        </div>
+
+        <div class="stage-status" id="stageStatus0">
+          瞄準...
+        </div>
+      </div>
+
+      <div class="difficulty-cell">
+        <div class="difficulty-image-box" id="difficultyBox1">
+          <span
+            class="difficulty-fallback"
+            id="difficultyFallback1"
+          >
+            7
+          </span>
+
+          <img
+            id="difficultyImage1"
+            alt="第二關難度"
+          />
+        </div>
+
+        <div class="stage-status" id="stageStatus1">
+          ...
+        </div>
+      </div>
+
+      <div class="difficulty-cell">
+        <div class="difficulty-image-box" id="difficultyBox2">
+          <span
+            class="difficulty-fallback"
+            id="difficultyFallback2"
+          >
+            15
+          </span>
+
+          <img
+            id="difficultyImage2"
+            alt="第三關難度"
+          />
+        </div>
+
+        <div class="stage-status" id="stageStatus2">
+          ...
+        </div>
+      </div>
+
+    </section>
+
+    <section class="control-row">
+
+      <div class="progress-text">
+        挑戰進度（<span id="progressNumber">0</span>/3）
+      </div>
+
+      <button
+        class="shoot-button"
+        id="shootButton"
+        type="button"
+      >
+        射擊
+      </button>
+
+      <div class="arrow">▶</div>
+
+      <div class="dice-box" id="diceBox">
+        <img id="diceImage" alt="二十面骰結果" />
+
+        <span class="dice-result" id="diceResult">
+          ?
+        </span>
+      </div>
+
+    </section>
+
+    <section class="dialogue-box">
+      <p class="dialogue-text" id="dialogueText"></p>
+    </section>
+
+  </main>
+
+  <script>
+    /* =========================================================
+       遊戲設定
+    ========================================================= */
+
+    const GAME_CONFIG = {
+      stages: [
+        {
+          targetImage: "images/target-1.png",
+          difficultyImage: "images/difficulty-3.png",
+          difficultyLabel: "3",
+
+          // 第一關：3 以上成功
+          successAt: 3
+        },
+
+        {
+          targetImage: "images/target-2.png",
+
+          // 難度圖片顯示 7
+          difficultyImage: "images/difficulty-7.png",
+          difficultyLabel: "7",
+
+          // 實際判定：6 以上成功
+          successAt: 6
+        },
+
+        {
+          targetImage: "images/target-3.png",
+          difficultyImage: "images/difficulty-15.png",
+          difficultyLabel: "15",
+
+          // 第三關：15 以上成功
+          successAt: 15
+        }
+      ],
+
+      /*
+        1～20 的骰子圖片。
+
+        dice-1.png 代表擲出 1
+        dice-2.png 代表擲出 2
+        依此類推。
+      */
+
+      diceImages: [
+        "images/dice-1.png",
+        "images/dice-2.png",
+        "images/dice-3.png",
+        "images/dice-4.png",
+        "images/dice-5.png",
+        "images/dice-6.png",
+        "images/dice-7.png",
+        "images/dice-8.png",
+        "images/dice-9.png",
+        "images/dice-10.png",
+        "images/dice-11.png",
+        "images/dice-12.png",
+        "images/dice-13.png",
+        "images/dice-14.png",
+        "images/dice-15.png",
+        "images/dice-16.png",
+        "images/dice-17.png",
+        "images/dice-18.png",
+        "images/dice-19.png",
+        "images/dice-20.png"
+      ],
+
+      /*
+        false：
+        只顯示你畫的骰子圖片。
+
+        true：
+        在骰子圖片中央再疊上數字。
+      */
+
+      showDiceNumberOverlay: false,
+
+      statusText: {
+        waiting: "...",
+        aiming: "瞄準...",
+        success: "成功!",
+        failure: "失敗..."
+      },
+
+      dialogue: {
+        before:
+          "有興趣就試試看吧。\n三發，三個目標，規則很簡單。",
+
+        during:
+          "下一個目標已經準備好了。\n瞄準之後再扣扳機。",
+
+        allFailed:
+          "……三發全都打偏了啊。\n別灰心，攤位還沒有收。",
+
+        partlyCleared:
+          "至少打中了幾個。\n差一點就能全部帶走了。",
+
+        allCleared:
+          "三個目標全部命中。\n看來獎品得交給你了。"
+      }
+    };
+
+    /* =========================================================
+       HTML 元素
+    ========================================================= */
+
+    const shootButton =
+      document.getElementById("shootButton");
+
+    const progressNumber =
+      document.getElementById("progressNumber");
+
+    const diceBox =
+      document.getElementById("diceBox");
+
+    const diceImage =
+      document.getElementById("diceImage");
+
+    const diceResult =
+      document.getElementById("diceResult");
+
+    const dialogueText =
+      document.getElementById("dialogueText");
+
+    const targetFrames =
+      GAME_CONFIG.stages.map((_, index) =>
+        document.getElementById(`targetFrame${index}`)
+      );
+
+    const targetImages =
+      GAME_CONFIG.stages.map((_, index) =>
+        document.getElementById(`targetImage${index}`)
+      );
+
+    const difficultyBoxes =
+      GAME_CONFIG.stages.map((_, index) =>
+        document.getElementById(`difficultyBox${index}`)
+      );
+
+    const difficultyImages =
+      GAME_CONFIG.stages.map((_, index) =>
+        document.getElementById(`difficultyImage${index}`)
+      );
+
+    const difficultyFallbacks =
+      GAME_CONFIG.stages.map((_, index) =>
+        document.getElementById(
+          `difficultyFallback${index}`
+        )
+      );
+
+    const stageStatuses =
+      GAME_CONFIG.stages.map((_, index) =>
+        document.getElementById(`stageStatus${index}`)
+      );
+
+    /* =========================================================
+       遊戲狀態
+    ========================================================= */
+
+    let currentStage = 0;
+    let results = [];
+    let isRolling = false;
+
+    /* =========================================================
+       載入目標與難度圖片
+    ========================================================= */
+
+    function loadBoxImage(
+      imageElement,
+      wrapperElement,
+      imagePath
+    ) {
+      imageElement.addEventListener("load", () => {
+        if (imageElement.naturalWidth > 0) {
+          wrapperElement.classList.add("has-image");
+        }
+      });
+
+      imageElement.addEventListener("error", () => {
+        wrapperElement.classList.remove("has-image");
+      });
+
+      imageElement.src = imagePath;
+    }
+
+    function loadStageImages() {
+      GAME_CONFIG.stages.forEach((stage, index) => {
+        loadBoxImage(
+          targetImages[index],
+          targetFrames[index],
+          stage.targetImage
+        );
+
+        loadBoxImage(
+          difficultyImages[index],
+          difficultyBoxes[index],
+          stage.difficultyImage
+        );
+
+        difficultyFallbacks[index].textContent =
+          stage.difficultyLabel;
+      });
+    }
+
+    /* =========================================================
+       預先載入 1～20 骰子圖片
+    ========================================================= */
+
+    function preloadDiceImages() {
+      GAME_CONFIG.diceImages.forEach((imagePath) => {
+        const image = new Image();
+        image.src = imagePath;
+      });
+    }
+
+    /* =========================================================
+       顯示指定骰面
+    ========================================================= */
+
+    function setDiceFace(number) {
+      const imagePath =
+        GAME_CONFIG.diceImages[number - 1];
+
+      diceResult.textContent = String(number);
+
+      if (!imagePath) {
+        diceBox.classList.remove("has-image");
+        return;
+      }
+
+      diceImage.onload = () => {
+        diceBox.classList.add("has-image");
+      };
+
+      diceImage.onerror = () => {
+        diceBox.classList.remove("has-image");
+      };
+
+      diceImage.src = imagePath;
+    }
+
+    /* =========================================================
+       1D20
+    ========================================================= */
+
+    function rollD20() {
+      return Math.floor(Math.random() * 20) + 1;
+    }
+
+    function wait(milliseconds) {
+      return new Promise((resolve) => {
+        window.setTimeout(resolve, milliseconds);
+      });
+    }
+
+    /* =========================================================
+       骰子動畫
+    ========================================================= */
+
+    async function animateDice(finalRoll) {
+      diceBox.classList.add("rolling");
+
+      /*
+        動畫期間隨機切換不同骰面圖片。
+      */
+
+      for (let count = 0; count < 14; count += 1) {
+        const temporaryRoll = rollD20();
+
+        setDiceFace(temporaryRoll);
+
+        await wait(45);
+      }
+
+      /*
+        最後停在真正擲出的結果。
+      */
+
+      setDiceFace(finalRoll);
+
+      diceBox.classList.remove("rolling");
+    }
+
+    /* =========================================================
+       目前關卡紅光
+    ========================================================= */
+
+    function updateTargetHighlight() {
+      targetFrames.forEach((frame, index) => {
+        const isCurrent =
+          index === currentStage &&
+          currentStage < GAME_CONFIG.stages.length;
+
+        frame.classList.toggle(
+          "current-target",
+          isCurrent
+        );
+      });
+    }
+
+    /* =========================================================
+       初始化狀態文字
+    ========================================================= */
+
+    function setInitialStatuses() {
+      stageStatuses.forEach((statusElement, index) => {
+        statusElement.textContent =
+          index === 0
+            ? GAME_CONFIG.statusText.aiming
+            : GAME_CONFIG.statusText.waiting;
+      });
+    }
+
+    /* =========================================================
+       最終角色台詞
+    ========================================================= */
+
+    function showFinalDialogue() {
+      const successCount =
+        results.filter(Boolean).length;
+
+      if (successCount === 0) {
+        dialogueText.textContent =
+          GAME_CONFIG.dialogue.allFailed;
+
+        return;
+      }
+
+      if (
+        successCount === GAME_CONFIG.stages.length
+      ) {
+        dialogueText.textContent =
+          GAME_CONFIG.dialogue.allCleared;
+
+        return;
+      }
+
+      dialogueText.textContent =
+        GAME_CONFIG.dialogue.partlyCleared;
+    }
+
+    /* =========================================================
+       重新挑戰
+    ========================================================= */
+
+    function resetGame() {
+      currentStage = 0;
+      results = [];
+      isRolling = false;
+
+      progressNumber.textContent = "0";
+
+      diceImage.removeAttribute("src");
+      diceBox.classList.remove("has-image");
+      diceResult.textContent = "?";
+
+      if (GAME_CONFIG.showDiceNumberOverlay) {
+        diceBox.classList.add("show-number");
+      } else {
+        diceBox.classList.remove("show-number");
+      }
+
+      shootButton.disabled = false;
+      shootButton.textContent = "射擊";
+
+      dialogueText.textContent =
+        GAME_CONFIG.dialogue.before;
+
+      setInitialStatuses();
+      updateTargetHighlight();
+    }
+
+    /* =========================================================
+       射擊處理
+    ========================================================= */
+
+    async function shootCurrentStage() {
+      if (isRolling) {
+        return;
+      }
+
+      /*
+        三關結束後按下按鈕，
+        會重新開始遊戲。
+      */
+
+      if (
+        currentStage >= GAME_CONFIG.stages.length
+      ) {
+        resetGame();
+        return;
+      }
+
+      isRolling = true;
+      shootButton.disabled = true;
+
+      const stageIndex = currentStage;
+      const stage = GAME_CONFIG.stages[stageIndex];
+
+      const roll = rollD20();
+
+      await animateDice(roll);
+
+      const isSuccess =
+        roll >= stage.successAt;
+
+      results.push(isSuccess);
+
+      stageStatuses[stageIndex].textContent =
+        isSuccess
+          ? GAME_CONFIG.statusText.success
+          : GAME_CONFIG.statusText.failure;
+
+      currentStage += 1;
+
+      progressNumber.textContent =
+        String(currentStage);
+
+      if (
+        currentStage < GAME_CONFIG.stages.length
+      ) {
+        stageStatuses[currentStage].textContent =
+          GAME_CONFIG.statusText.aiming;
+
+        dialogueText.textContent =
+          GAME_CONFIG.dialogue.during;
+
+        shootButton.textContent = "射擊";
+        shootButton.disabled = false;
+      } else {
+        shootButton.textContent = "重新挑戰";
+        shootButton.disabled = false;
+
+        showFinalDialogue();
+      }
+
+      updateTargetHighlight();
+
+      isRolling = false;
+    }
+
+    shootButton.addEventListener(
+      "click",
+      shootCurrentStage
+    );
+
+    /* =========================================================
+       啟動遊戲
+    ========================================================= */
+
+    loadStageImages();
+    preloadDiceImages();
+    resetGame();
+  </script>
+</body>
+</html>
