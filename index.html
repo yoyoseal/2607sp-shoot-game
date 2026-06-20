@@ -8,7 +8,7 @@
     content="width=device-width, initial-scale=1.0"
   />
 
-  <title>祭典射擊攤位</title>
+  <title>射的／射擊</title>
 
   <style>
     :root {
@@ -58,7 +58,7 @@
       overflow: hidden;
       color: var(--red);
       background: var(--background);
-      border: 1px solid var(--red);
+      border: 0px solid var(--red);
     }
 
     /* =========================
@@ -352,7 +352,7 @@
       position: absolute;
       left: 64px;
       right: 22px;
-      bottom: 16px;
+      bottom: 32px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -521,8 +521,8 @@
           difficultyImage: "images/difficulty-7.png",
           difficultyLabel: "7",
 
-          // 實際判定：6 以上成功
-          successAt: 6
+          // 實際判定：7 以上成功
+          successAt: 7
         },
 
         {
@@ -585,19 +585,19 @@
 
       dialogue: {
         before:
-          "有興趣就試試看吧。\n三發，三個目標，規則很簡單。",
+          "三發軟木塞，三個目標……\n表演給我看吧。",
 
         during:
-          "下一個目標已經準備好了。\n瞄準之後再扣扳機。",
+          "嗯……好，下一個。\n好好瞄準啊。",
 
         allFailed:
-          "……三發全都打偏了啊。\n別灰心，攤位還沒有收。",
+          "……三發全都打偏了啊？該說你很有才能嗎……\n沒關係，反正沒人打擾我們，再來一局？",
 
         partlyCleared:
-          "至少打中了幾個。\n差一點就能全部帶走了。",
+          "還不錯。",
 
         allCleared:
-          "三個目標全部命中。\n看來獎品得交給你了。"
+          "全部命中了啊，真有你的。\n可惜沒獎品，我幫你掌聲鼓勵鼓勵吧（他舉起手鼓掌……）。"
       }
     };
 
